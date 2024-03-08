@@ -11,8 +11,12 @@ const registerUser = async(req, res) => {
   try {
     
   const { username, fullname, email, password } = req.body;
+  console.log(req.body);
   if (!username || !fullname || !email || !password) {
-    throw new APIError("All fields are required", 400);
+    return res.status(400).json({
+      success:false,
+      message:"All fields are required"
+    })
   }
 
   const alreadyExistingUser = await User.findOne({
@@ -20,25 +24,34 @@ const registerUser = async(req, res) => {
   });
 
   if(alreadyExistingUser){
-    throw new APIError("User already registered",400);
+    return res.status(400).json({
+      success:false,
+      message:"user already registered"
+    })
   }
   
   const avatarLocalFilePath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage?.path;
+  const coverImageLocalFilePath = req.files?.coverImage?.path;
+ 
 
   if(!avatarLocalFilePath){
-    throw new APIError("Avatar is required",400);
+    return res.status(200).json({
+      success:false,
+      message:"Avatar is required"
+    })
   }
 
   const avatar = await uploadFileOnCloudinary(avatarLocalFilePath);
-  let coverimage;
+  const coverimage = await uploadFileOnCloudinary(coverImageLocalFilePath);
 
-  if(coverImageLocalPath){
-    coverimage = await uploadFileOnCloudinary(coverImageLocalPath); 
-  }
+  console.log("avatar",avatar);
+  console.log("cover",coverimage);
 
   if(!avatar){
-    throw new APIError("Internal server error ,Please try again",501);
+    return res.status(501).json({
+      success:false,
+      message:"Internal server error"
+    })
   }
 
   const user = await User.create({
@@ -48,30 +61,25 @@ const registerUser = async(req, res) => {
     username,
     avatar:avatar.url,
     coverimage:coverimage?.url || ""
-  })
-
-  if(user){
-    res.status(200).json({
-      success:true,
-      data:user
-    })
-  }
+  });
 
   const userCreated = await User.findById(user?._id).select("-password -refreshtoken");
   if(!userCreated){
-    throw new APIError("something went wrong while registering the user,Please try again",500);
+   return res.status(500).json({
+      success:false,
+      message:"Internal server error,Please try again"
+    })
   }
 
   res.status(201).json({
     success:true,
-    message:"user created successfully",
     data:userCreated,
   })
 
 
 
   } catch (error) {
-    console.log(error.message);
+   console.log(error);
   }
 };
 
