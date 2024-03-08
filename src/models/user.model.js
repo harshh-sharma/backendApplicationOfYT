@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
       minLength: [5, "username must be conatin atleast 5 character"],
       unique: [true, "email must be unique"],
       index: true,
+      lowercase:true
     },
     email: {
       type: String,
@@ -52,12 +53,12 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-userSchema.plugin("save",async function(next){
+userSchema.pre("save",async function(next){
     if(!this.isModified("password")) return next();
 
-    this.password = bcrypt.hash(this.password,10);
+    this.password = await bcrypt.hash(this.password,10);
     next();
-})
+});
 
 userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password);
